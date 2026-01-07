@@ -3,9 +3,9 @@ import HitbullseyeUploadSection from "../components/HitbullseyeUploadSection";
 
 export default function ENTCPage() {
   return (
-    <main className="h-full bg-gray-50">
+    <main className="bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white p-6">
       <GFGUploadSection department="ENTC" />
-      <hr className="my-6 border-gray-400" />
+      <hr className="my-10 border-gray-400 dark:border-gray-700" />
       <HitbullseyeUploadSection />
     </main>
   );
