@@ -1,15 +1,12 @@
 "use client";
 import { TestResult } from "@/types/Student";
 import { processGFGCodingTestFiles } from "@/utils/processesGFGCodingTest";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import FileUpload from "./common/FileUpload";
 import * as XLSX from "xlsx";
 import GFGTestTable from "./GFGTestTable";
 
-interface Props {
-  department: string;
-}
-export default function GFGTestUploadSection({ department }: Props) {
+export default function GFGTestUploadSection() {
   const [file, setFile] = useState<File | null>(null);
   const [finalList, setFinalList] = useState<TestResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);

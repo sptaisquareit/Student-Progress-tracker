@@ -24,7 +24,7 @@ export function isTestPresent(cell: string | number | null | undefined): boolean
     return true;
 }
 
-export function advanceNormalizeRoll(s: any) {
+export function advanceNormalizeRoll(s: string | undefined): string {
   const trimmed = String(s ?? "").trim();
   const cleaned = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
