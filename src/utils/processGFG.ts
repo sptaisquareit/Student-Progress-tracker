@@ -4,9 +4,6 @@ import { normalizeEmail, normalizeRoll } from "./helpers";
 import { Student } from "@/types/Student";
 import * as XLSX from "xlsx";
 
-/**
- * main entry: given three File objects, return Student[] final output
- */
 export async function processGFGFiles(javaFile: File, cppFile: File, rollCallFile: File): Promise<Student[]> {
     const [javaWB, cppWB, rollWB] = await Promise.all([
         readWorkbookFromFile(javaFile),

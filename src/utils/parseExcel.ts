@@ -3,9 +3,6 @@ import * as XLSX from "xlsx";
 import { RawResult } from "@/types/RawResult";
 import { normalizeEmail, normalizeRoll, isAttendancePresent } from "./helpers";
 
-/**
- * readWorkbookFromFile - reads file and returns workbook
- */
 export async function readWorkbookFromFile(file: File): Promise<XLSX.WorkBook> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -23,10 +20,6 @@ export async function readWorkbookFromFile(file: File): Promise<XLSX.WorkBook> {
     });
 }
 
-/**
- * parseGFGWorkbook - parse workbook for a single GFG file (java or cpp)
- * returns a map: email -> RawResult
- */
 export function parseGFGWorkbook(wb: XLSX.WorkBook): Record<string, RawResult> {
     const names = wb.SheetNames;
 
@@ -52,7 +45,6 @@ export function parseGFGWorkbook(wb: XLSX.WorkBook): Record<string, RawResult> {
     //     defval: "",
     // }) as (string | number)[][];
 
-    // Identify columns with "Lecture" in header
     const firstRow = attendanceRows[0] || {};
     const allKeys = Object.keys(firstRow);
     const lectureColumns = allKeys.filter((k) => /lecture/i.test(k));

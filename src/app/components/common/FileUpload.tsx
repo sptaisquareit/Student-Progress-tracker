@@ -15,9 +15,8 @@ export default function FileUpload({
   file,
   onChange,
   accept = ".xlsx",
-  cacheKey
+  cacheKey,
 }: FileUploadProps) {
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] || null;
     onChange(selected);

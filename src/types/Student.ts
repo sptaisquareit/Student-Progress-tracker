@@ -18,3 +18,12 @@ export interface HitbullseyeStudent {
     recentAptitudeMarks?: string | number;
     recentCodingScore?: string | number;
 }
+
+export interface TestResult {
+    name: string;
+    rollNo: string;
+    email: string;
+    branch: string;
+    score: string | number;
+    division?: string;
+}
