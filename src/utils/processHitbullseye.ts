@@ -4,46 +4,62 @@ import { HitbullseyeStudent } from "@/types/Student";
 import { normalizeRoll, normalizeEmail } from "./helpers";
 
 export async function processHitbullseyeFile(
-    file: File
+    file: File,
+    rollCallFile: File
 ): Promise<HitbullseyeStudent[]> {
-    const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: "array" });
 
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+    // ── Step 1: Use arrayBuffer() directly — same as fast single-file version ──
+    const [dataBuffer, rollBuffer] = await Promise.all([
+        file.arrayBuffer(),
+        rollCallFile.arrayBuffer(),
+    ]);
 
+    const dataWb = XLSX.read(dataBuffer, { type: "array" });
+    const rollWb = XLSX.read(rollBuffer, { type: "array" });
+
+    const sheet = dataWb.Sheets[dataWb.SheetNames[0]];
+    const rollSheet = rollWb.Sheets[rollWb.SheetNames[0]];
+
+    // ── Step 2: Parse Roll Call ─────────────────────────────────────
+    const rollRows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(
+        rollSheet,
+        { defval: "" }
+    );
+
+    // ── Step 3: Parse master sheet (skip first 3 rows, same as fast version) ──
     const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number | null>>(
         sheet,
-        {
-            defval: "-",
-            range: 3, // skip first 3 rows
-        }
+        { defval: "-", range: 1 }
     );
 
     if (jsonData.length === 0) return [];
 
+    // ── Step 4: Detect test columns ─────────────────────────────────
     const allCols = Object.keys(jsonData[0]);
 
-    // Detect test columns
     const overallCols = allCols.filter(
         (col) => col.toLowerCase().includes("overall") && col.includes("50")
     );
-
     const weScoreCols = allCols.filter(
         (col) => col.toLowerCase().includes("we") && col.includes("100")
     );
 
     const totalTests = overallCols.length + weScoreCols.length;
 
-    const results: HitbullseyeStudent[] = jsonData.map((row) => {
-        const name = (row["Name"] || row["Student Name"] || "-") as string;
-        const rollRaw = (row["Roll No"] || row["Roll"] || "-") as string;
-        const rollNo = normalizeRoll(rollRaw);
+    // ── Step 5: Build studentMap keyed by Hitbullseye ID ───────────
+    const studentMap = new Map<string, {
+        name: string;
+        division: string;
+        email: string;
+        testsAppeared: string;
+        recentAptitudeMarks: string | number;
+        recentCodingScore: string | number;
+    }>();
 
-        const division = (row["Division"] || row["Section"] || "-") as string;
-        const email = normalizeEmail((row["Email"] || "-") as string);
+    jsonData.forEach((row) => {
+        const hitId = String(row["Hitbullseye ID"] ?? "").trim();
+        if (!hitId || hitId === "-") return;
 
-        // Count number of appeared tests
         let appeared = 0;
         [...overallCols, ...weScoreCols].forEach((col) => {
             const val = row[col];
@@ -52,44 +68,50 @@ export async function processHitbullseyeFile(
             }
         });
 
-        // Latest marks
         const lastOverall = row[overallCols[overallCols.length - 1]];
-        const recentAptitudeMarks =
-            lastOverall === "-" || lastOverall === null || lastOverall === undefined
-                ? "AB"
-                : lastOverall;
-
         const lastWe = row[weScoreCols[weScoreCols.length - 1]];
-        const recentCodingScore =
-            lastWe === "-" || lastWe === null || lastWe === undefined
-                ? "AB"
-                : lastWe;
 
-
-        return {
-            name,
-            rollNo,
-            division,
-            email,
+        studentMap.set(hitId, {
+            name: String(row["Name"] ?? row["Student Name"] ?? "-"),
+            division: String(row["Division"] ?? row["Section"] ?? "-"),
+            email: normalizeEmail(String(row["Email"] ?? "-")),
             testsAppeared: `${appeared} out of ${totalTests}`,
-            recentAptitudeMarks,
-            recentCodingScore,
-        };
+            recentAptitudeMarks:
+                lastOverall === "-" || lastOverall == null ? "AB" : lastOverall,
+            recentCodingScore:
+                lastWe === "-" || lastWe == null ? "AB" : lastWe,
+        });
     });
 
-    // Sort by division → roll no
-    const divisionOrder = { A: 0, B: 1, C: 2 };
+    // ── Step 6: Merge — rollRows is source of truth ─────────────────
+    const results: HitbullseyeStudent[] = [];
+
+    for (const r of rollRows) {
+        const hitId = String(r["Hitbullseye ID"] ?? "").trim();
+        const rollNo = normalizeRoll(String(r["Roll No"] ?? ""));
+        const data = studentMap.get(hitId);
+
+        results.push({
+            rollNo,
+            name: data?.name ?? "-",
+            division: data?.division ?? "-",
+            email: data?.email ?? "-",
+            testsAppeared: data?.testsAppeared ?? "-",
+            recentAptitudeMarks: data?.recentAptitudeMarks ?? "AB",
+            recentCodingScore: data?.recentCodingScore ?? "AB",
+        });
+    }
+
+    // ── Step 7: Sort by Division (A→B→C) then Roll No ──────────────
+    const divisionOrder: Record<string, number> = { A: 0, B: 1, C: 2 };
 
     results.sort((a, b) => {
-        const da = (a.division || "").trim().toUpperCase();
-        const db = (b.division || "").trim().toUpperCase();
-
-        const pa = divisionOrder[da as keyof typeof divisionOrder] ?? 99;
-        const pb = divisionOrder[db as keyof typeof divisionOrder] ?? 99;
-
+        const da = (a.division ?? "").trim().toUpperCase();
+        const db = (b.division ?? "").trim().toUpperCase();
+        const pa = divisionOrder[da] ?? 99;
+        const pb = divisionOrder[db] ?? 99;
         if (pa !== pb) return pa - pb;
-
-        return (a.rollNo || "").localeCompare(b.rollNo || "");
+        return (a.rollNo ?? "").localeCompare(b.rollNo ?? "");
     });
 
     return results;
