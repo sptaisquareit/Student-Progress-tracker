@@ -9,6 +9,7 @@ import { HitbullseyeStudent } from "@/types/Student";
 
 export default function HitbullseyeUploadSection() {
   const [file, setFile] = useState<File | null>(null);
+  const [rollCallFile, setRollCallFile] = useState<File | null>(null);
   const [finalList, setFinalList] = useState<HitbullseyeStudent[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -21,11 +22,12 @@ export default function HitbullseyeUploadSection() {
 
   const processFile = async () => {
     if (!file) return;
+    if (!rollCallFile) return;
 
     setIsProcessing(true);
 
     try {
-      const data = await processHitbullseyeFile(file);
+      const data = await processHitbullseyeFile(file, rollCallFile);
       setFinalList(data);
     } catch (error) {
       console.error(error);
@@ -39,12 +41,17 @@ export default function HitbullseyeUploadSection() {
     <section className="p-6">
       <h2 className="text-2xl font-semibold mb-4">Hitbullseye Processing</h2>
 
-      <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+      <div className="grid sm:grid-cols-2 gap-2 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <FileUpload label="Hitbullseye File" file={file} onChange={setFile} />
+        <FileUpload
+          label="HitbullseyeID & RollCall"
+          file={rollCallFile}
+          onChange={setRollCallFile}
+        />
       </div>
 
       <button
-        disabled={!file || isProcessing}
+        disabled={!file || !rollCallFile || isProcessing}
         onClick={processFile}
         className="mt-4 bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
       >
