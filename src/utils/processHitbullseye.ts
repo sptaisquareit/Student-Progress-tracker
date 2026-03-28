@@ -8,7 +8,6 @@ export async function processHitbullseyeFile(
     rollCallFile: File
 ): Promise<HitbullseyeStudent[]> {
 
-    // ── Step 1: Use arrayBuffer() directly — same as fast single-file version ──
     const [dataBuffer, rollBuffer] = await Promise.all([
         file.arrayBuffer(),
         rollCallFile.arrayBuffer(),
@@ -20,13 +19,11 @@ export async function processHitbullseyeFile(
     const sheet = dataWb.Sheets[dataWb.SheetNames[0]];
     const rollSheet = rollWb.Sheets[rollWb.SheetNames[0]];
 
-    // ── Step 2: Parse Roll Call ─────────────────────────────────────
     const rollRows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(
         rollSheet,
         { defval: "" }
     );
 
-    // ── Step 3: Parse master sheet (skip first 3 rows, same as fast version) ──
     const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number | null>>(
         sheet,
         { defval: "-", range: 1 }
@@ -34,7 +31,6 @@ export async function processHitbullseyeFile(
 
     if (jsonData.length === 0) return [];
 
-    // ── Step 4: Detect test columns ─────────────────────────────────
     const allCols = Object.keys(jsonData[0]);
 
     const overallCols = allCols.filter(
@@ -46,7 +42,6 @@ export async function processHitbullseyeFile(
 
     const totalTests = overallCols.length + weScoreCols.length;
 
-    // ── Step 5: Build studentMap keyed by Hitbullseye ID ───────────
     const studentMap = new Map<string, {
         name: string;
         division: string;
@@ -83,7 +78,6 @@ export async function processHitbullseyeFile(
         });
     });
 
-    // ── Step 6: Merge — rollRows is source of truth ─────────────────
     const results: HitbullseyeStudent[] = [];
 
     for (const r of rollRows) {
@@ -94,15 +88,14 @@ export async function processHitbullseyeFile(
         results.push({
             rollNo,
             name: data?.name ?? "-",
-            division: data?.division ?? "-",
+            division: rollNo && rollNo.length >= 3 ? rollNo[2].toUpperCase() : "-",
             email: data?.email ?? "-",
             testsAppeared: data?.testsAppeared ?? "-",
             recentAptitudeMarks: data?.recentAptitudeMarks ?? "AB",
             recentCodingScore: data?.recentCodingScore ?? "AB",
         });
     }
-
-    // ── Step 7: Sort by Division (A→B→C) then Roll No ──────────────
+    
     const divisionOrder: Record<string, number> = { A: 0, B: 1, C: 2 };
 
     results.sort((a, b) => {
