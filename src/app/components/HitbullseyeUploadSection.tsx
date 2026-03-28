@@ -1,17 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import FileUpload from "./common/FileUpload";
 import { processHitbullseyeFile } from "@/utils/processHitbullseye";
 import HitbullseyeTable from "./HitbullseyeTable";
 import { HitbullseyeStudent } from "@/types/Student";
 
-export default function HitbullseyeUploadSection() {
+interface Props {
+  department: string;
+}
+
+export default function HitbullseyeUploadSection({ department }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [rollCallFile, setRollCallFile] = useState<File | null>(null);
   const [finalList, setFinalList] = useState<HitbullseyeStudent[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const rollKey = `hitbulls_roll_${department}`;
+
+  useEffect(() => {
+    const cachedData = localStorage.getItem(rollKey);
+    const cachedName = localStorage.getItem(rollKey + "_name");
+
+    if (!cachedData || !cachedName) return;
+
+    const arr = cachedData.split(",");
+    const mime = arr[0].match(/:(.*?);/)?.[1] || "application/octet-stream";
+    const bstr = atob(arr[1]);
+    const u8arr = new Uint8Array(bstr.length);
+
+    for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+
+    setRollCallFile(new File([u8arr], cachedName, { type: mime }));
+  }, [rollKey]);
 
   const downloadExcel = () => {
     const ws = XLSX.utils.json_to_sheet(finalList);
@@ -47,6 +69,7 @@ export default function HitbullseyeUploadSection() {
           label="HitbullseyeID & RollCall"
           file={rollCallFile}
           onChange={setRollCallFile}
+          cacheKey={rollKey}
         />
       </div>
 

@@ -9,7 +9,7 @@ export default function ENTCPage() {
       <hr className="my-10 border-gray-400 dark:border-gray-700" />
       <GFGTestUploadSection />
       <hr className="my-10 border-gray-400 dark:border-gray-700" />
-      <HitbullseyeUploadSection />
+      <HitbullseyeUploadSection department="ENTC" />
     </main>
   );
 }
